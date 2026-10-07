@@ -15,13 +15,11 @@ It does not replace `prompt.md` and does not modify fixed prompt requirements.
 ## Selection Flow
 
 ```text
-DATE
+DATE NOW
  ↓
 CALENDAR
  ↓
-CATEGORY
- ↓
-CONTENT INTENT
+CATEGORY + CONTENT INTENT
  ↓
 SUBJECT
  ↓
@@ -29,82 +27,153 @@ ACTION
  ↓
 BACKGROUND_ELEMENT
  ↓
-COMPATIBILITY CHECK
+COMPATIBILITY FILTER
+ ↓
+PRIORITY CONSTRAINT
+ ↓
+EDITORIAL RELEVANCE
  ↓
 FINAL PROMPT
 ```
 
-## Rule 1 — Calendar and Category
+## Rule 1 — DATE NOW
 
-When a calendar entry is available:
+`DATE NOW` means the current date on the day the workflow is executed.
 
-1. Read the applicable calendar entry.
-2. Identify the selected `category`.
-3. Identify the intended editorial direction or theme.
-4. Use these as the primary context for variable selection.
+Use ISO date format:
 
-If no calendar entry is available, use the user's explicit content intent as the primary context.
+```text
+YYYY-MM-DD
+```
 
-Do not invent a calendar category when one is not provided.
+Do not ask the user to provide today's date unless the execution environment cannot determine the current date.
 
-## Rule 2 — Content Intent
+## Rule 2 — Calendar
 
-Determine the visual intent before selecting variables.
+Read `calendar.md` and find the entry matching `DATE NOW`.
 
-Examples of intent:
-- product discovery
-- store exploration
-- customer experience
-- architecture
-- lifestyle
-- technology
-- community
-- brand environment
+Each calendar entry must provide only:
 
-The content intent must be consistent with the selected category.
+```text
+date
+category
+content_intent
+```
 
-## Rule 3 — Subject
+Example:
+
+```markdown
+## 2026-10-08
+category: store
+content_intent: customer_experience
+```
+
+If today's date is not present in `calendar.md`:
+
+```text
+STOP
+```
+
+Do not use a nearby date, invent a category, invent a content intent, or create a fallback editorial plan.
+
+## Rule 3 — Subject Selection
 
 Select exactly one subject.
 
-Selection priority:
-1. category compatibility
-2. content intent compatibility
-3. editorial relevance
-4. visual clarity
+Selection context:
 
-The subject must be suitable for the intended scene.
+```text
+CATEGORY
++
+CONTENT INTENT
+↓
+SUBJECT CANDIDATES
+```
 
-Do not select a subject solely because it is available.
+Filter candidates by compatibility first.
 
-## Rule 4 — Action
+Then apply the priority constraint.
+
+Priority values are shared by all variable types:
+
+```text
+1 = Highest
+2 = Medium
+3 = Lower
+```
+
+Priority is a constraint, not the final decision.
+
+If compatible candidates exist at Priority 1, evaluate only Priority 1 candidates.
+If none exist, evaluate Priority 2 candidates.
+If none exist, evaluate Priority 3 candidates.
+If no compatible candidate exists, STOP.
+
+Among the remaining candidates, select the one with the strongest editorial relevance to the category and content intent.
+
+## Rule 4 — Action Selection
 
 Select exactly one action.
 
+Selection context:
+
+```text
+CATEGORY
++
+CONTENT INTENT
++
+SELECTED SUBJECT
+↓
+ACTION CANDIDATES
+```
+
 The action must:
 - be compatible with the selected subject
+- be compatible with the category
 - express the content intent
 - create a visually understandable moment
 - support the subject as the primary focal point
 
-Never select an action that is incompatible with the subject.
+Apply the same compatibility → priority constraint → editorial relevance process defined for Subject.
 
-## Rule 5 — Background Element
+Never select an incompatible action.
+
+## Rule 5 — Background Element Selection
 
 Select exactly one background element.
 
+Selection context:
+
+```text
+CATEGORY
++
+CONTENT INTENT
++
+SELECTED SUBJECT
++
+SELECTED ACTION
+↓
+BACKGROUND CANDIDATES
+```
+
 The background element must:
-- support the selected subject
-- support the selected action
+- be compatible with the selected subject
+- be compatible with the selected action
+- be compatible with the category
 - reinforce the content intent
 - preserve visual hierarchy
 - remain secondary to the subject
+- avoid unnecessary clutter
 
-Do not select a background element that creates unnecessary clutter or competes with the subject.
+Apply the same compatibility → priority constraint → editorial relevance process defined for Subject.
+
+Never select an incompatible background element.
 
 ## Rule 6 — Compatibility
 
-Before finalizing the variables, verify:
+Compatibility is mandatory.
+
+The final combination must satisfy:
 
 ```text
 SUBJECT
@@ -114,11 +183,37 @@ ACTION
 BACKGROUND_ELEMENT
 ```
 
-All three variables must form one coherent visual concept.
+Do not relax compatibility to obtain a result.
 
-Reject and reselect any incompatible variable.
+If no compatible candidate remains after Priority 1 → 2 → 3, STOP.
 
-## Rule 7 — Fixed Requirements
+## Rule 7 — Editorial Relevance
+
+Editorial relevance is the final decision layer after compatibility and priority filtering.
+
+Evaluate candidates against:
+1. category relevance
+2. content intent relevance
+3. visual clarity
+4. coherence with previously selected variables
+5. support of the subject as the primary focal point
+
+Do not select randomly.
+
+## Rule 8 — No Previous Usage
+
+Do not use history, previous usage, or a history file as a selection input in V1.
+
+Selection is based only on:
+- current date
+- calendar category
+- calendar content intent
+- compatibility
+- priority
+- editorial relevance
+- selected upstream variables
+
+## Rule 9 — Fixed Requirements
 
 Variable selection must never modify the fixed requirements defined in `prompt.md`.
 
@@ -133,33 +228,29 @@ Fixed requirements include:
 - brand handle requirements
 - readability and visual-balance constraints
 
-## Rule 8 — Output
+## Rule 10 — Final Prompt
 
-After selection and validation, substitute the selected values into `prompt.md`.
+After all three variables are selected, substitute them into `prompt.md`.
 
 The final prompt must contain:
-- one subject
-- one action
-- one background element
+- exactly one subject
+- exactly one action
+- exactly one background element
 
-No unresolved dynamic variable should remain in the final prompt.
+No unresolved dynamic variable may remain.
 
 ## Selection Principle
 
-Prefer the **most relevant and visually coherent combination**, not random selection.
-
-The goal is:
-
 ```text
-CATEGORY
+CALENDAR CONTEXT
 +
-CONTENT INTENT
+COMPATIBILITY
 +
-SUBJECT
+PRIORITY CONSTRAINT
 +
-ACTION
-+
-BACKGROUND
+EDITORIAL RELEVANCE
 =
-ONE COHERENT VISUAL CONCEPT
+BEST VALID VARIABLE COMBINATION
 ```
+
+The system must prefer the most relevant valid combination, never an arbitrary or incompatible combination.
