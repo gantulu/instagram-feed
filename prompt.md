@@ -1,16 +1,27 @@
-# INSTAGRAM_FEED_IMAGE_PROMPT
+# APPLE_THE_EXCHANGE_TRX_FEED
 
-[BRAND]
-[SUBJECT]
-[CONTEXT]
-[STYLE]
-[COMPOSITION]
-[CAMERA]
-[LIGHTING]
-[COLOR]
-[BACKGROUND]
-[VISUAL_HIERARCHY]
-[EDITORIAL_DIRECTION]
-[BRAND_CONSISTENCY]
-[NEGATIVE_PROMPT]
-[FORMAT]
+## FIXED
+
+### BRAND
+Apple
+Apple The Exchange TRX
+
+### STYLE
+Minimal
+Premium
+Photorealistic
+Editorial
+
+### BRAND_CONSISTENCY
+Apple visual identity
+Clean and refined aesthetic
+Premium retail environment
+Consistent architectural character
+Consistent material and finish
+Consistent visual quality
+
+### FORMAT
+Instagram Feed
+4:5
+Portrait
+High resolution
