@@ -12,24 +12,53 @@ Dynamic variables:
 This file is the selection and decision layer.
 It does not replace `prompt.md` and does not modify fixed prompt requirements.
 
+## Data Source
+
+Variable data is stored in Supabase.
+
+Supabase project:
+`oszqantvugvbvydlizix`
+
+Use these tables as the only variable data source:
+
+```text
+variable_subjects
+variable_actions
+variable_backgrounds
+variable_subject_actions
+variable_action_backgrounds
+variable_calendars
+```
+
+Do not read or use:
+- `variables/subject.md`
+- `variables/action.md`
+- `variables/background-element.md`
+- `calendar.md`
+
+GitHub remains the source of truth for this selection logic and `prompt.md`.
+Supabase is the source of truth for variable data and calendar records.
+
 ## Selection Flow
 
 ```text
 DATE NOW
  ↓
-CALENDAR
+variable_calendars
  ↓
 CATEGORY + CONTENT INTENT
  ↓
-SUBJECT
+variable_subjects
  ↓
-ACTION
+variable_subject_actions
  ↓
-BACKGROUND_ELEMENT
+variable_actions
  ↓
-COMPATIBILITY FILTER
+variable_action_backgrounds
  ↓
-PRIORITY CONSTRAINT
+variable_backgrounds
+ ↓
+VISUAL FIT
  ↓
 EDITORIAL RELEVANCE
  ↓
@@ -50,25 +79,24 @@ Do not ask the user to provide today's date unless the execution environment can
 
 ## Rule 2 — Calendar
 
-Read `calendar.md` and find the entry matching `DATE NOW`.
+Read `variable_calendars` from Supabase and find the row matching `DATE NOW`.
 
-Each calendar entry must provide only:
+Required fields:
 
 ```text
 date
 category
 content_intent
+active
 ```
 
-Example:
+Only use rows where:
 
-```markdown
-## 2026-10-08
-category: store
-content_intent: customer_experience
+```text
+active = true
 ```
 
-If today's date is not present in `calendar.md`:
+If today's date is not present as an active row in `variable_calendars`:
 
 ```text
 STOP
@@ -78,7 +106,7 @@ Do not use a nearby date, invent a category, invent a content intent, or create 
 
 ## Rule 3 — Subject Selection
 
-Select exactly one subject.
+Select exactly one subject from `variable_subjects`.
 
 Selection context:
 
@@ -90,30 +118,25 @@ CONTENT INTENT
 SUBJECT CANDIDATES
 ```
 
-Filter candidates by compatibility first.
+Filter only active subjects.
 
-Then apply the priority constraint.
+A subject is a valid candidate when:
+- `category` contains the calendar category
+- `content_intent` contains the calendar content intent
 
-Priority values are shared by all variable types:
+Do not use priority.
+
+If no valid subject exists:
 
 ```text
-1 = Highest
-2 = Medium
-3 = Lower
+STOP
 ```
 
-Priority is a constraint, not the final decision.
-
-If compatible candidates exist at Priority 1, evaluate only Priority 1 candidates.
-If none exist, evaluate Priority 2 candidates.
-If none exist, evaluate Priority 3 candidates.
-If no compatible candidate exists, STOP.
-
-Among the remaining candidates, select the one with the strongest editorial relevance to the category and content intent.
+Among valid candidates, evaluate visual fit and editorial relevance.
 
 ## Rule 4 — Action Selection
 
-Select exactly one action.
+Select exactly one action from `variable_actions`.
 
 Selection context:
 
@@ -128,19 +151,24 @@ ACTION CANDIDATES
 ```
 
 The action must:
-- be compatible with the selected subject
-- be compatible with the category
-- express the content intent
+- be active
+- match the calendar category
+- match the calendar content intent
+- be linked to the selected subject in `variable_subject_actions`
 - create a visually understandable moment
 - support the subject as the primary focal point
 
-Apply the same compatibility → priority constraint → editorial relevance process defined for Subject.
+If no valid action exists:
 
-Never select an incompatible action.
+```text
+STOP
+```
+
+Evaluate remaining candidates using visual fit and editorial relevance.
 
 ## Rule 5 — Background Element Selection
 
-Select exactly one background element.
+Select exactly one background element from `variable_backgrounds`.
 
 Selection context:
 
@@ -157,21 +185,38 @@ BACKGROUND CANDIDATES
 ```
 
 The background element must:
-- be compatible with the selected subject
-- be compatible with the selected action
-- be compatible with the category
+- be active
+- match the calendar category
+- match the calendar content intent
+- be linked to the selected action in `variable_action_backgrounds`
 - reinforce the content intent
 - preserve visual hierarchy
 - remain secondary to the subject
 - avoid unnecessary clutter
 
-Apply the same compatibility → priority constraint → editorial relevance process defined for Subject.
+If no valid background exists:
 
-Never select an incompatible background element.
+```text
+STOP
+```
+
+Evaluate remaining candidates using visual fit and editorial relevance.
 
 ## Rule 6 — Compatibility
 
-Compatibility is mandatory.
+Compatibility is a mandatory hard constraint.
+
+Subject ↔ Action compatibility is defined by:
+
+```text
+variable_subject_actions
+```
+
+Action ↔ Background compatibility is defined by:
+
+```text
+variable_action_backgrounds
+```
 
 The final combination must satisfy:
 
@@ -185,35 +230,84 @@ BACKGROUND_ELEMENT
 
 Do not relax compatibility to obtain a result.
 
-If no compatible candidate remains after Priority 1 → 2 → 3, STOP.
+If no compatible candidate remains:
 
-## Rule 7 — Editorial Relevance
+```text
+STOP
+```
 
-Editorial relevance is the final decision layer after compatibility and priority filtering.
+## Rule 7 — Visual Fit
 
-Evaluate candidates against:
+Visual metadata is a soft selection layer after hard constraints.
+
+Evaluate:
+
+- `visual_role`
+- `subject_scale` when available
+- `focal_priority`
+- `composition_role`
+- `visual_complexity`
+
+The selected combination should:
+- maintain a clear focal hierarchy
+- keep the subject primary
+- keep supporting elements secondary
+- avoid unnecessary visual complexity
+- produce a coherent composition
+
+Do not use visual metadata as a substitute for compatibility.
+
+## Rule 8 — Editorial Relevance
+
+Editorial relevance is the final decision layer.
+
+Evaluate:
 1. category relevance
 2. content intent relevance
 3. visual clarity
 4. coherence with previously selected variables
 5. support of the subject as the primary focal point
+6. consistency with the fixed requirements in `prompt.md`
 
 Do not select randomly.
 
-## Rule 8 — No Previous Usage
+## Rule 9 — No Priority
 
-Do not use history, previous usage, or a history file as a selection input in V1.
+There is no priority system in V1.1.
+
+Do not use:
+- `priority`
+- priority ranking
+- priority fallback
+- priority-based selection
+
+Selection is based on:
+
+```text
+Calendar Context
++
+Compatibility
++
+Visual Fit
++
+Editorial Relevance
+```
+
+## Rule 10 — No Previous Usage
+
+Do not use history, previous usage, or a history file as a selection input in V1.1.
 
 Selection is based only on:
 - current date
 - calendar category
 - calendar content intent
+- active variable records
 - compatibility
-- priority
+- visual metadata
 - editorial relevance
 - selected upstream variables
 
-## Rule 9 — Fixed Requirements
+## Rule 11 — Fixed Requirements
 
 Variable selection must never modify the fixed requirements defined in `prompt.md`.
 
@@ -228,7 +322,7 @@ Fixed requirements include:
 - brand handle requirements
 - readability and visual-balance constraints
 
-## Rule 10 — Final Prompt
+## Rule 12 — Final Prompt
 
 After all three variables are selected, substitute them into `prompt.md`.
 
@@ -246,7 +340,7 @@ CALENDAR CONTEXT
 +
 COMPATIBILITY
 +
-PRIORITY CONSTRAINT
+VISUAL FIT
 +
 EDITORIAL RELEVANCE
 =
