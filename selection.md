@@ -39,6 +39,42 @@ Do not read or use:
 GitHub remains the source of truth for this selection logic and `prompt.md`.
 Supabase is the source of truth for variable data and calendar records.
 
+## Edge Function Data Access
+
+All variable data must be read through the public Supabase Edge Function.
+
+Edge Function:
+
+`https://oszqantvugvbvydlizix.supabase.co/functions/v1/variables`
+
+JWT is not required.
+
+Do not access the `variable_*` tables directly from the client or selection consumer.
+
+GET resources:
+
+```text
+?resource=subjects
+?resource=actions
+?resource=backgrounds
+?resource=subject_actions
+?resource=action_backgrounds
+?resource=calendars&date=YYYY-MM-DD
+```
+
+Examples:
+
+```text
+https://oszqantvugvbvydlizix.supabase.co/functions/v1/variables?resource=subjects
+https://oszqantvugvbvydlizix.supabase.co/functions/v1/variables?resource=actions
+https://oszqantvugvbvydlizix.supabase.co/functions/v1/variables?resource=backgrounds
+https://oszqantvugvbvydlizix.supabase.co/functions/v1/variables?resource=subject_actions
+https://oszqantvugvbvydlizix.supabase.co/functions/v1/variables?resource=action_backgrounds
+https://oszqantvugvbvydlizix.supabase.co/functions/v1/variables?resource=calendars&date=YYYY-MM-DD
+```
+
+The Edge Function is the public gateway to the six `variable_*` tables.
+
 ## Selection Flow
 
 ```text
