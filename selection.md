@@ -293,7 +293,68 @@ The selected combination should:
 
 Do not use visual metadata as a substitute for compatibility.
 
-## Rule 8 — Editorial Relevance
+
+## Rule 8 — Deterministic Scoring
+
+After all hard constraints are satisfied, score every valid combination.
+
+The score is composed of visual-fit metadata only:
+
+Subject:
+- primary_subject: +20
+- medium scale: +10
+- wide scale: +5
+- primary focal: +20
+- centered: +15
+- low complexity: +10
+- medium complexity: +5
+
+Action:
+- subject_action: +20
+- primary focal: +20
+- centered: +15
+- low complexity: +10
+- medium complexity: +5
+
+Background:
+- supporting_background: +15
+- tertiary focal: +15
+- background role: +15
+- low complexity: +10
+- medium complexity: +5
+
+Select the highest-scoring valid combination.
+
+If scores are equal, use this deterministic tie-break:
+
+```text
+subject.id ASC
+→ action.id ASC
+→ background.id ASC
+```
+
+The tie-break is only for determinism. It is not a priority system.
+
+## Rule 9 — Selection Engine
+
+The selection engine is implemented in the public Edge Function:
+
+```text
+https://oszqantvugvbvydlizix.supabase.co/functions/v1/variables?resource=selection
+```
+
+Optional date:
+
+```text
+?resource=selection&date=YYYY-MM-DD
+```
+
+The engine must return exactly one selected combination when valid candidates exist.
+It must stop when the calendar is missing/inactive or when no valid combination exists.
+
+The response also includes all valid candidates and their scores for verification.
+
+## Rule 10 — Editorial Relevance
 
 Editorial relevance is the final decision layer.
 
@@ -307,7 +368,7 @@ Evaluate:
 
 Do not select randomly.
 
-## Rule 9 — No Priority
+## Rule 11 — No Priority
 
 There is no priority system in V1.1.
 
@@ -329,7 +390,7 @@ Visual Fit
 Editorial Relevance
 ```
 
-## Rule 10 — No Previous Usage
+## Rule 12 — No Previous Usage
 
 Do not use history, previous usage, or a history file as a selection input in V1.1.
 
@@ -343,7 +404,7 @@ Selection is based only on:
 - editorial relevance
 - selected upstream variables
 
-## Rule 11 — Fixed Requirements
+## Rule 13 — Fixed Requirements
 
 Variable selection must never modify the fixed requirements defined in `prompt.md`.
 
@@ -358,7 +419,7 @@ Fixed requirements include:
 - brand handle requirements
 - readability and visual-balance constraints
 
-## Rule 12 — Final Prompt
+## Rule 14 — Final Prompt
 
 After all three variables are selected, substitute them into `prompt.md`.
 
