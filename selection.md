@@ -356,17 +356,19 @@ The response also includes all valid candidates and their scores for verificatio
 
 ## Rule 10 — Editorial Relevance
 
-Editorial relevance is the final decision layer.
+In V1.1, editorial relevance is enforced before scoring through the calendar context and fixed prompt requirements.
 
-Evaluate:
-1. category relevance
-2. content intent relevance
-3. visual clarity
-4. coherence with previously selected variables
-5. support of the subject as the primary focal point
-6. consistency with the fixed requirements in `prompt.md`
+A candidate must satisfy:
+1. calendar category
+2. calendar content intent
+3. active status
+4. subject/action compatibility
+5. action/background compatibility
+6. visual coherence with the fixed requirements in `prompt.md`
 
-Do not select randomly.
+There is no subjective editorial score in V1.1.
+
+Visual metadata determines the soft score after these editorial constraints are satisfied.
 
 ## Rule 11 — No Priority
 
