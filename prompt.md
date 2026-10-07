@@ -1,80 +1,34 @@
-# APPLE_THE_EXCHANGE_TRX_FEED
+# IMAGE PROMPT
 
-## IDENTITY
+Create a premium social media feed image featuring **{{subject}}** performing **{{action}}**.
 
-Purpose:
-Generate an Instagram Feed image prompt for Apple The Exchange TRX.
+## Environment
+- Clean white background
+- Include **{{background_element}}** as the supporting background element.
+- Keep the environment minimal and uncluttered.
 
-## FIXED
+## Visual Direction
+- Minimal, balanced, centered composition
+- Soft natural lighting
+- Premium, photorealistic, editorial visual style
+- Clear visual hierarchy
+- Subject remains the primary focal point
 
-### BRAND
-Apple
-Apple The Exchange TRX
+## Output
+- Portrait 4:5
+- 1080 × 1350 px minimum
+- High-resolution
+- Production-ready quality
 
-### STYLE
-Minimal
-Premium
-Photorealistic
-Editorial
+## Footer
+- Full-width footer positioned at the bottom
+- Flex layout
+- Center aligned
+- Instagram logo + `@appletheexchangetrx`
+- Facebook logo + `@appletheexchangetrx`
 
-### BRAND_CONSISTENCY
-Apple visual identity
-Clean and refined aesthetic
-Premium retail environment
-Consistent architectural character
-Consistent material and finish
-Consistent visual quality
-
-### FORMAT
-Instagram Feed
-4:5
-Portrait
-High resolution
-
-## VARIABLE
-
-[SUBJECT]
-[CONTEXT]
-[COMPOSITION]
-[CAMERA]
-[LIGHTING]
-[COLOR]
-[BACKGROUND]
-[VISUAL_HIERARCHY]
-[EDITORIAL_DIRECTION]
-[NEGATIVE_PROMPT]
-
-## VARIABLE SOURCES
-
-[SUBJECT] → variables/subject.md
-[CONTEXT] → variables/context.md
-[COMPOSITION] → variables/composition.md
-[CAMERA] → variables/camera.md
-[LIGHTING] → variables/lighting.md
-[COLOR] → variables/color.md
-[BACKGROUND] → variables/background.md
-[VISUAL_HIERARCHY] → variables/visual-hierarchy.md
-[EDITORIAL_DIRECTION] → variables/editorial-direction.md
-[NEGATIVE_PROMPT] → variables/negative-prompt.md
-
-## GENERATION
-
-Read the FIXED configuration.
-
-Read the available VARIABLE sources.
-
-Determine the appropriate SUBJECT and CONTENT CONTEXT.
-
-Select or generate supporting visual variables that are coherent with the SUBJECT and CONTEXT.
-
-Maintain all FIXED requirements.
-
-Maintain Apple visual consistency.
-
-Ensure all selected variables work together as one coherent visual concept.
-
-Generate one final image prompt.
-
-Do not expose the internal variable-selection process.
-
-Do not modify FIXED values.
+## Constraints
+- Preserve the clean white aesthetic.
+- Do not introduce unnecessary objects or visual clutter.
+- Maintain premium, minimal, refined visual simplicity consistent with the brand environment.
+- Ensure the footer remains clearly readable and visually balanced.
