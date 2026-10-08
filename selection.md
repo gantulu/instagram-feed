@@ -248,12 +248,9 @@ Do not use history or previous usage as a selection input.
 
 ## Final Prompt
 
-Prompt rendering is intentionally a separate stage.
+Prompt rendering is a separate stage owned by the Prompt Renderer.
 
-The Selection Engine returns the selected variables.
-It does not render `prompt.md` yet.
-
-The next stage will consume:
+The Selection Engine returns the selected variables. The Prompt Renderer consumes:
 
 ```text
 selected.subject
@@ -261,9 +258,11 @@ selected.action
 selected.background
 ```
 
-and substitute them into `prompt.md`.
+and substitutes them into the canonical GitHub `prompt.md` template.
 
-No unresolved dynamic variable may remain in the final prompt.
+The Prompt Renderer returns `final_prompt` and must reject unresolved dynamic variables.
+
+Daily Image consumes `final_prompt` as the canonical execution candidate and must not reconstruct or replace it locally.
 
 ## Selection Principle
 
