@@ -16,8 +16,13 @@ It does not replace `prompt.md` and does not modify fixed prompt requirements.
 
 Variable data is stored in Supabase.
 
-Supabase project:
-`oszqantvugvbvydlizix`
+Supabase is the source of truth for variable data and calendar records.
+
+GitHub is the source of truth for:
+- selection logic
+- selection rules
+- scoring contract
+- `prompt.md`
 
 Use these tables as the only variable data source:
 
@@ -30,50 +35,30 @@ variable_action_backgrounds
 variable_calendars
 ```
 
-Do not read or use:
+Do not read or use these legacy files as operational variable data:
 - `variables/subject.md`
 - `variables/action.md`
 - `variables/background-element.md`
 - `calendar.md`
 
-GitHub remains the source of truth for this selection logic and `prompt.md`.
-Supabase is the source of truth for variable data and calendar records.
+## Edge Function
 
-## Edge Function Data Access
+All variable data and selection results are read through the public Supabase Edge Function:
 
-All variable data must be read through the public Supabase Edge Function.
-
-Edge Function:
-
-`https://oszqantvugvbvydlizix.supabase.co/functions/v1/variables`
+```text
+https://oszqantvugvbvydlizix.supabase.co/functions/v1/variables
+```
 
 JWT is not required.
 
-Do not access the `variable_*` tables directly from the client or selection consumer.
-
-GET resources:
+Selection endpoint:
 
 ```text
-?resource=subjects
-?resource=actions
-?resource=backgrounds
-?resource=subject_actions
-?resource=action_backgrounds
-?resource=calendars&date=YYYY-MM-DD
+?resource=selection
+?resource=selection&date=YYYY-MM-DD
 ```
 
-Examples:
-
-```text
-https://oszqantvugvbvydlizix.supabase.co/functions/v1/variables?resource=subjects
-https://oszqantvugvbvydlizix.supabase.co/functions/v1/variables?resource=actions
-https://oszqantvugvbvydlizix.supabase.co/functions/v1/variables?resource=backgrounds
-https://oszqantvugvbvydlizix.supabase.co/functions/v1/variables?resource=subject_actions
-https://oszqantvugvbvydlizix.supabase.co/functions/v1/variables?resource=action_backgrounds
-https://oszqantvugvbvydlizix.supabase.co/functions/v1/variables?resource=calendars&date=YYYY-MM-DD
-```
-
-The Edge Function is the public gateway to the six `variable_*` tables.
+The consumer must not access the `variable_*` tables directly.
 
 ## Selection Flow
 
@@ -84,248 +69,81 @@ variable_calendars
  ↓
 CATEGORY + CONTENT INTENT
  ↓
-variable_subjects
+ACTIVE SUBJECTS
  ↓
-variable_subject_actions
+SUBJECT ↔ ACTION COMPATIBILITY
  ↓
-variable_actions
+ACTIVE ACTIONS
  ↓
-variable_action_backgrounds
+ACTION ↔ BACKGROUND COMPATIBILITY
  ↓
-variable_backgrounds
+ACTIVE BACKGROUNDS
  ↓
 VISUAL FIT
  ↓
-EDITORIAL RELEVANCE
+DETERMINISTIC SCORE
  ↓
-FINAL PROMPT
+ONE SELECTED COMBINATION
 ```
 
-## Rule 1 — DATE NOW
+## Hard Constraints
 
-`DATE NOW` means the current date on the day the workflow is executed.
+A valid combination must satisfy all of these:
 
-Use ISO date format:
+1. Active calendar exists for the requested date.
+2. Subject matches calendar `category`.
+3. Subject matches calendar `content_intent`.
+4. Subject is active.
+5. Subject ↔ Action exists in `variable_subject_actions`.
+6. Action matches calendar `category`.
+7. Action matches calendar `content_intent`.
+8. Action is active.
+9. Action ↔ Background exists in `variable_action_backgrounds`.
+10. Background matches calendar `category`.
+11. Background matches calendar `content_intent`.
+12. Background is active.
 
-```text
-YYYY-MM-DD
-```
+Compatibility must never be relaxed.
 
-Do not ask the user to provide today's date unless the execution environment cannot determine the current date.
-
-## Rule 2 — Calendar
-
-Read `variable_calendars` from Supabase and find the row matching `DATE NOW`.
-
-Required fields:
-
-```text
-date
-category
-content_intent
-active
-```
-
-Only use rows where:
-
-```text
-active = true
-```
-
-If today's date is not present as an active row in `variable_calendars`:
+If any required stage has no valid candidate:
 
 ```text
 STOP
 ```
 
-Do not use a nearby date, invent a category, invent a content intent, or create a fallback editorial plan.
-
-## Rule 3 — Subject Selection
-
-Select exactly one subject from `variable_subjects`.
-
-Selection context:
-
-```text
-CATEGORY
-+
-CONTENT INTENT
-↓
-SUBJECT CANDIDATES
-```
-
-Filter only active subjects.
-
-A subject is a valid candidate when:
-- `category` contains the calendar category
-- `content_intent` contains the calendar content intent
-
-Do not use priority.
-
-If no valid subject exists:
-
-```text
-STOP
-```
-
-Among valid candidates, evaluate visual fit and editorial relevance.
-
-## Rule 4 — Action Selection
-
-Select exactly one action from `variable_actions`.
-
-Selection context:
-
-```text
-CATEGORY
-+
-CONTENT INTENT
-+
-SELECTED SUBJECT
-↓
-ACTION CANDIDATES
-```
-
-The action must:
-- be active
-- match the calendar category
-- match the calendar content intent
-- be linked to the selected subject in `variable_subject_actions`
-- create a visually understandable moment
-- support the subject as the primary focal point
-
-If no valid action exists:
-
-```text
-STOP
-```
-
-Evaluate remaining candidates using visual fit and editorial relevance.
-
-## Rule 5 — Background Element Selection
-
-Select exactly one background element from `variable_backgrounds`.
-
-Selection context:
-
-```text
-CATEGORY
-+
-CONTENT INTENT
-+
-SELECTED SUBJECT
-+
-SELECTED ACTION
-↓
-BACKGROUND CANDIDATES
-```
-
-The background element must:
-- be active
-- match the calendar category
-- match the calendar content intent
-- be linked to the selected action in `variable_action_backgrounds`
-- reinforce the content intent
-- preserve visual hierarchy
-- remain secondary to the subject
-- avoid unnecessary clutter
-
-If no valid background exists:
-
-```text
-STOP
-```
-
-Evaluate remaining candidates using visual fit and editorial relevance.
-
-## Rule 6 — Compatibility
-
-Compatibility is a mandatory hard constraint.
-
-Subject ↔ Action compatibility is defined by:
-
-```text
-variable_subject_actions
-```
-
-Action ↔ Background compatibility is defined by:
-
-```text
-variable_action_backgrounds
-```
-
-The final combination must satisfy:
-
-```text
-SUBJECT
-  ↕
-ACTION
-  ↕
-BACKGROUND_ELEMENT
-```
-
-Do not relax compatibility to obtain a result.
-
-If no compatible candidate remains:
-
-```text
-STOP
-```
-
-## Rule 7 — Visual Fit
-
-Visual metadata is a soft selection layer after hard constraints.
-
-Evaluate:
-
-- `visual_role`
-- `subject_scale` when available
-- `focal_priority`
-- `composition_role`
-- `visual_complexity`
-
-The selected combination should:
-- maintain a clear focal hierarchy
-- keep the subject primary
-- keep supporting elements secondary
-- avoid unnecessary visual complexity
-- produce a coherent composition
-
-Do not use visual metadata as a substitute for compatibility.
-
-
-## Rule 8 — Deterministic Scoring
+## Deterministic Scoring
 
 After all hard constraints are satisfied, score every valid combination.
 
-The score is composed of visual-fit metadata only:
+### Subject
 
-Subject:
-- primary_subject: +20
-- medium scale: +10
-- wide scale: +5
-- primary focal: +20
-- centered: +15
-- low complexity: +10
-- medium complexity: +5
+- `primary_subject`: +20
+- `medium` scale: +10
+- `wide` scale: +5
+- `primary` focal: +20
+- `center` composition: +15
+- `low` complexity: +10
+- `medium` complexity: +5
 
-Action:
-- subject_action: +20
-- primary focal: +20
-- centered: +15
-- low complexity: +10
-- medium complexity: +5
+### Action
 
-Background:
-- supporting_background: +15
-- tertiary focal: +15
-- background role: +15
-- low complexity: +10
-- medium complexity: +5
+- `subject_action`: +20
+- `primary` focal: +20
+- `center` composition: +15
+- `low` complexity: +10
+- `medium` complexity: +5
+
+### Background
+
+- `supporting_background`: +15
+- `tertiary` focal: +15
+- `background` composition: +15
+- `low` complexity: +10
+- `medium` complexity: +5
 
 Select the highest-scoring valid combination.
 
-If scores are equal, use this deterministic tie-break:
+Tie-break:
 
 ```text
 subject.id ASC
@@ -333,49 +151,70 @@ subject.id ASC
 → background.id ASC
 ```
 
-The tie-break is only for determinism. It is not a priority system.
+The tie-break exists only for determinism. It is not a priority system.
 
-## Rule 9 — Selection Engine
+## Selection Response Contract
 
-The selection engine is implemented in the public Edge Function:
-
-```text
-https://oszqantvugvbvydlizix.supabase.co/functions/v1/variables?resource=selection
-```
-
-Optional date:
+A successful selection returns:
 
 ```text
-?resource=selection&date=YYYY-MM-DD
+{
+  engine_version,
+  status: "selected",
+  date,
+  calendar,
+  selected,
+  candidates,
+  scoring
+}
 ```
 
-The engine must return exactly one selected combination when valid candidates exist.
-It must stop when the calendar is missing/inactive or when no valid combination exists.
+`selected` contains exactly one:
 
-The response also includes all valid candidates and their scores for verification.
+```text
+subject
+action
+background
+score
+```
 
-## Rule 10 — Editorial Relevance
+`candidates` contains every valid combination and its score so the result can be verified.
 
-In V1.1, editorial relevance is enforced before scoring through the calendar context and fixed prompt requirements.
+When no active calendar exists:
 
-A candidate must satisfy:
-1. calendar category
-2. calendar content intent
-3. active status
-4. subject/action compatibility
-5. action/background compatibility
-6. visual coherence with the fixed requirements in `prompt.md`
+```text
+{
+  status: "stopped",
+  reason: "NO_ACTIVE_CALENDAR"
+}
+```
 
-There is no subjective editorial score in V1.1.
+When the calendar exists but no valid combination exists:
 
-Visual metadata determines the soft score after these editorial constraints are satisfied.
+```text
+{
+  status: "stopped",
+  reason: "NO_VALID_COMBINATION"
+}
+```
 
-## Rule 11 — No Priority
+An invalid date is rejected with HTTP 400.
 
-There is no priority system in V1.1.
+## Current Date
+
+When no date is provided, the Edge Function determines the date using the canonical timezone:
+
+```text
+Asia/Kuala_Lumpur
+```
+
+A caller may provide an explicit date for deterministic testing.
+
+## No Priority
+
+There is no priority system.
 
 Do not use:
-- `priority`
 - priority ranking
 - priority fallback
 - priority-based selection
@@ -392,45 +231,28 @@ Visual Fit
 Editorial Relevance
 ```
 
-## Rule 12 — No Previous Usage
+## No Previous Usage
 
-Do not use history, previous usage, or a history file as a selection input in V1.1.
+Do not use history or previous usage as a selection input.
 
-Selection is based only on:
-- current date
-- calendar category
-- calendar content intent
-- active variable records
-- compatibility
-- visual metadata
-- editorial relevance
-- selected upstream variables
+## Final Prompt
 
-## Rule 13 — Fixed Requirements
+Prompt rendering is intentionally a separate stage.
 
-Variable selection must never modify the fixed requirements defined in `prompt.md`.
+The Selection Engine returns the selected variables.
+It does not render `prompt.md` yet.
 
-Fixed requirements include:
-- premium visual direction
-- clean white background
-- minimal composition
-- photorealistic editorial style
-- portrait 4:5 format
-- 1080 × 1350 px minimum
-- footer requirements
-- brand handle requirements
-- readability and visual-balance constraints
+The next stage will consume:
 
-## Rule 14 — Final Prompt
+```text
+selected.subject
+selected.action
+selected.background
+```
 
-After all three variables are selected, substitute them into `prompt.md`.
+and substitute them into `prompt.md`.
 
-The final prompt must contain:
-- exactly one subject
-- exactly one action
-- exactly one background element
-
-No unresolved dynamic variable may remain.
+No unresolved dynamic variable may remain in the final prompt.
 
 ## Selection Principle
 
@@ -445,5 +267,3 @@ EDITORIAL RELEVANCE
 =
 BEST VALID VARIABLE COMBINATION
 ```
-
-The system must prefer the most relevant valid combination, never an arbitrary or incompatible combination.
