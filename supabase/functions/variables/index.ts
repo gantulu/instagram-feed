@@ -205,6 +205,57 @@ async function selectVariables(date: string) {
   };
 }
 
+const PROMPT_TEMPLATE_URL = "https://raw.githubusercontent.com/gantulu/instagram-feed/main/prompt.md";
+
+function renderPrompt(template: string, selected: { subject: Variable; action: Variable; background: Variable }) {
+  const replacements: Record<string, string> = {
+    "{{subject}}": selected.subject.name,
+    "{{action}}": selected.action.name,
+    "{{background_element}}": selected.background.name,
+  };
+
+  let finalPrompt = template;
+  for (const [token, value] of Object.entries(replacements)) {
+    finalPrompt = finalPrompt.split(token).join(value);
+  }
+
+  const unresolved = [...finalPrompt.matchAll(/{{[^}]+}}/g)].map((match) => match[0]);
+  if (unresolved.length) {
+    throw new Error(`Unresolved dynamic variables: ${[...new Set(unresolved)].join(", ")}`);
+  }
+
+  return { final_prompt: finalPrompt, replacements };
+}
+
+async function buildFinalPrompt(date: string) {
+  const selection = await selectVariables(date);
+
+  if (selection.status !== "selected") return selection;
+
+  const response = await fetch(PROMPT_TEMPLATE_URL, {
+    headers: { "Accept": "text/plain" },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to read prompt.md: HTTP ${response.status}`);
+  }
+
+  const template = await response.text();
+  const rendered = renderPrompt(template, selection.selected);
+
+  return {
+    engine_version: selection.engine_version,
+    prompt_engine_version: "1.0",
+    status: "selected",
+    date: selection.date,
+    calendar: selection.calendar,
+    selected: selection.selected,
+    final_prompt: rendered.final_prompt,
+    prompt_source: PROMPT_TEMPLATE_URL,
+    prompt_variables: rendered.replacements,
+  };
+}
+
 async function readResource(resource: Resource, date?: string) {
   let query = supabase.from(tableMap[resource]).select("*");
 
@@ -244,12 +295,13 @@ Deno.serve(async (req) => {
     const date = requestedDate || todayISO();
 
     if (resource === "selection") return json(await selectVariables(date));
+    if (resource === "prompt") return json(await buildFinalPrompt(date));
 
     if (!resource || !(resource in tableMap)) {
       return json({
         function: "variables",
         status: "ok",
-        resources: [...Object.keys(tableMap), "selection"],
+        resources: [...Object.keys(tableMap), "selection", "prompt"],
         default_date: date,
       });
     }
