@@ -58,6 +58,17 @@ Selection endpoint:
 ?resource=selection&date=YYYY-MM-DD
 ```
 
+Prompt rendering endpoint:
+
+```text
+?resource=prompt
+?resource=prompt&date=YYYY-MM-DD
+```
+
+The `prompt` resource executes Selection Engine first, reads the canonical `prompt.md` from GitHub, substitutes the selected variables, and returns `final_prompt`.
+
+The rendered result must contain no unresolved `{{...}}` dynamic variables.
+
 The consumer must not access the `variable_*` tables directly.
 
 ## Selection Flow
